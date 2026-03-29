@@ -1,0 +1,36 @@
+[gd_scene format=3 uid="uid://oj0cj7antnan"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_o3h3i"]
+sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
+ground_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
+
+[sub_resource type="Sky" id="Sky_5cjrv"]
+sky_material = SubResource("ProceduralSkyMaterial_o3h3i")
+
+[sub_resource type="Environment" id="Environment_j0p05"]
+background_mode = 2
+sky = SubResource("Sky_5cjrv")
+tonemap_mode = 2
+glow_enabled = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6ubv3"]
+albedo_color = Color(0.3092215, 0.31140062, 0.4104486, 1)
+
+[node name="World" type="Node3D" unique_id=1924170789]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=759683147]
+environment = SubResource("Environment_j0p05")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1177878449]
+transform = Transform3D(-0.8660254, -0.43301278, 0.25, 0, 0.49999997, 0.86602545, -0.50000006, 0.75, -0.43301266, 0, 0, 0)
+shadow_enabled = true
+
+[node name="Floor" type="CSGBox3D" parent="." unique_id=1223775173]
+use_collision = true
+size = Vector3(30, 0.2, 30)
+material = SubResource("StandardMaterial3D_6ubv3")
+
+[node name="CrouchObstacle" type="CSGBox3D" parent="." unique_id=2022236895]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -8)
+use_collision = true
+size = Vector3(5, 0.3, 5)

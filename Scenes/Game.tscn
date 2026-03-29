@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://dv4y2glc0t6vx"]
+
+[ext_resource type="PackedScene" uid="uid://oj0cj7antnan" path="res://Scenes/World/World.tscn" id="1_iukft"]
+[ext_resource type="Script" uid="uid://6xjx4cax8yl" path="res://Scripts/Singletons/Game.gd" id="1_j5yw3"]
+[ext_resource type="PackedScene" uid="uid://ckl3linlydvgt" path="res://Scenes/Player/Player.tscn" id="2_gl6un"]
+
+[node name="Game" type="Node3D" unique_id=174956129]
+script = ExtResource("1_j5yw3")
+
+[node name="World" parent="." unique_id=1924170789 instance=ExtResource("1_iukft")]
+
+[node name="Players" type="Node3D" parent="." unique_id=1729763040]
+
+[node name="Player" parent="Players" unique_id=56843405 instance=ExtResource("2_gl6un")]

@@ -1,0 +1,44 @@
+[gd_scene format=3 uid="uid://ckl3linlydvgt"]
+
+[ext_resource type="Script" uid="uid://vucx5xrfdm22" path="res://Scripts/Player/Managers/PlayerManager.gd" id="1_ft8w5"]
+[ext_resource type="Script" uid="uid://cqeso7h7jlejn" path="res://Scripts/Player/MovementComponent.gd" id="2_h54ih"]
+[ext_resource type="Script" uid="uid://bpoarw1dm5h2o" path="res://Scripts/Player/CameraComponent.gd" id="2_ude3g"]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_l3ax4"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_s0eop"]
+
+[node name="Player" type="CharacterBody3D" unique_id=56843405 node_paths=PackedStringArray("movement_component")]
+script = ExtResource("1_ft8w5")
+movement_component = NodePath("MovementComponent")
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=815986143]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("CapsuleMesh_l3ax4")
+
+[node name="Hitbox" type="CollisionShape3D" parent="." unique_id=2081923423]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("CapsuleShape3D_s0eop")
+
+[node name="CameraComponent" type="Node3D" parent="." unique_id=1179337207 node_paths=PackedStringArray("player", "eyes", "cam")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.8, 0)
+script = ExtResource("2_ude3g")
+player = NodePath("..")
+eyes = NodePath("Eyes")
+cam = NodePath("Eyes/Camera3D")
+
+[node name="Eyes" type="Node3D" parent="CameraComponent" unique_id=586089387]
+
+[node name="Camera3D" type="Camera3D" parent="CameraComponent/Eyes" unique_id=290962644]
+
+[node name="InteractionComponent" type="RayCast3D" parent="CameraComponent/Eyes" unique_id=639183417]
+target_position = Vector3(0, 0, -2.5)
+
+[node name="MovementComponent" type="Node3D" parent="." unique_id=1066898846 node_paths=PackedStringArray("player", "camera_component", "cam")]
+script = ExtResource("2_h54ih")
+player = NodePath("..")
+camera_component = NodePath("../CameraComponent")
+cam = NodePath("../CameraComponent/Eyes/Camera3D")
+
+[node name="StandCheck" type="RayCast3D" parent="." unique_id=418045716]
+target_position = Vector3(0, 2, 0)

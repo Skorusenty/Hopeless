@@ -13,13 +13,13 @@
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_h54ih"]
 height = 1.0
 
-[node name="Player" type="CharacterBody3D" unique_id=56843405 node_paths=PackedStringArray("camera_component", "movement_component", "interaction_component", "pickup_component")]
+[node name="Player" type="CharacterBody3D" unique_id=56843405 node_paths=PackedStringArray("movement_component", "interaction_component", "camera_component", "pickup_component")]
 collision_layer = 2
 collision_mask = 129
 script = ExtResource("1_ft8w5")
-camera_component = NodePath("CameraComponent")
 movement_component = NodePath("MovementComponent")
 interaction_component = NodePath("CameraComponent/Eyes/InteractionComponent")
+camera_component = NodePath("CameraComponent")
 pickup_component = NodePath("CameraComponent/PickupComponent")
 
 [node name="Mesh" type="MeshInstance3D" parent="." unique_id=815986143]
@@ -52,25 +52,20 @@ collision_mask = 128
 script = ExtResource("3_ude3g")
 player = NodePath("../../..")
 
-[node name="PickupComponent" type="Node3D" parent="CameraComponent" unique_id=387351487 node_paths=PackedStringArray("player", "cam", "hold_point")]
+[node name="PickupComponent" type="Node3D" parent="CameraComponent" unique_id=387351487 node_paths=PackedStringArray("player")]
 script = ExtResource("4_jmcll")
 player = NodePath("../..")
-cam = NodePath("..")
-hold_point = NodePath("Hand")
 
 [node name="Hand" type="Marker3D" parent="CameraComponent/PickupComponent" unique_id=1835594635]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.701, -1.5)
 
-[node name="MovementComponent" type="Node3D" parent="." unique_id=1066898846 node_paths=PackedStringArray("camera_component", "player", "stand_check", "standing_hitbox", "crouching_hitbox", "head", "eyes", "cam")]
+[node name="MovementComponent" type="Node3D" parent="." unique_id=1066898846 node_paths=PackedStringArray("camera_component", "player", "stand_check", "standing_hitbox", "crouching_hitbox")]
 script = ExtResource("2_h54ih")
 camera_component = NodePath("../CameraComponent")
 player = NodePath("..")
 stand_check = NodePath("../StandCheck")
 standing_hitbox = NodePath("../StandingHitbox")
 crouching_hitbox = NodePath("../CrouchingHitbox")
-head = NodePath("../CameraComponent")
-eyes = NodePath("../CameraComponent/Eyes")
-cam = NodePath("../CameraComponent/Eyes/Camera3D")
 
 [node name="StandCheck" type="RayCast3D" parent="." unique_id=418045716]
 target_position = Vector3(0, 2, 0)

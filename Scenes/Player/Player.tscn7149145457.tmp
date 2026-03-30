@@ -61,16 +61,20 @@ hold_point = NodePath("Hand")
 [node name="Hand" type="Marker3D" parent="CameraComponent/PickupComponent" unique_id=1835594635]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.701, -1.5)
 
-[node name="MovementComponent" type="Node3D" parent="." unique_id=1066898846 node_paths=PackedStringArray("camera_component", "player", "stand_check", "standing_hitbox", "crouching_hitbox", "head", "eyes", "cam")]
+[node name="MovementComponent" type="Node3D" parent="." unique_id=1066898846 node_paths=PackedStringArray("camera_component", "player", "stand_check", "standing_hitbox", "crouching_hitbox")]
 script = ExtResource("2_h54ih")
 camera_component = NodePath("../CameraComponent")
 player = NodePath("..")
 stand_check = NodePath("../StandCheck")
 standing_hitbox = NodePath("../StandingHitbox")
 crouching_hitbox = NodePath("../CrouchingHitbox")
-head = NodePath("../CameraComponent")
-eyes = NodePath("../CameraComponent/Eyes")
-cam = NodePath("../CameraComponent/Eyes/Camera3D")
+walk_speed = null
+sprint_speed = null
+crouch_speed = null
+jump_velocity = null
+gravity = null
+g_accel = null
+a_accel = null
 
 [node name="StandCheck" type="RayCast3D" parent="." unique_id=418045716]
 target_position = Vector3(0, 2, 0)

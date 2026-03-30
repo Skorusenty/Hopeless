@@ -11,4 +11,4 @@ script = ExtResource("1_j5yw3")
 
 [node name="Players" type="Node3D" parent="." unique_id=1729763040]
 
-[node name="Player" parent="Players" unique_id=56843405 instance=ExtResource("2_gl6un")]
+[node name="Player" parent="Players" unique_id=56843405 groups=["Player"] instance=ExtResource("2_gl6un")]

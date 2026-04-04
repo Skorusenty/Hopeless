@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://cqeso7h7jlejn" path="res://Scripts/Player/MovementComponent.gd" id="2_h54ih"]
 [ext_resource type="Script" uid="uid://bpoarw1dm5h2o" path="res://Scripts/Player/CameraComponent.gd" id="2_ude3g"]
 [ext_resource type="Script" uid="uid://bondyqmmt7o5h" path="res://Scripts/Player/InteractionComponent.gd" id="3_ude3g"]
-[ext_resource type="Script" uid="uid://boxc7ltr4hvbv" path="res://Scenes/Player/PickupComponent.gd" id="4_jmcll"]
+[ext_resource type="Script" uid="uid://boxc7ltr4hvbv" path="res://Scripts/Player/PickupComponent.gd" id="4_jmcll"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_l3ax4"]
 
@@ -12,6 +12,17 @@
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_h54ih"]
 height = 1.0
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_jmcll"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath(".:rotation")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+properties/2/path = NodePath("MovementComponent:current_state")
+properties/2/spawn = true
+properties/2/replication_mode = 2
 
 [node name="Player" type="CharacterBody3D" unique_id=56843405 node_paths=PackedStringArray("camera_component", "movement_component", "interaction_component", "pickup_component")]
 collision_layer = 2
@@ -52,16 +63,17 @@ collision_mask = 128
 script = ExtResource("3_ude3g")
 player = NodePath("../../..")
 
-[node name="PickupComponent" type="Node3D" parent="CameraComponent" unique_id=387351487 node_paths=PackedStringArray("player", "cam", "hold_point")]
+[node name="PickupComponent" type="Node3D" parent="CameraComponent" unique_id=387351487 node_paths=PackedStringArray("player", "cam", "hold_point", "interaction_component")]
 script = ExtResource("4_jmcll")
 player = NodePath("../..")
 cam = NodePath("..")
 hold_point = NodePath("Hand")
+interaction_component = NodePath("../Eyes/InteractionComponent")
 
 [node name="Hand" type="Marker3D" parent="CameraComponent/PickupComponent" unique_id=1835594635]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.701, -1.5)
 
-[node name="MovementComponent" type="Node3D" parent="." unique_id=1066898846 node_paths=PackedStringArray("camera_component", "player", "stand_check", "standing_hitbox", "crouching_hitbox", "head", "eyes", "cam")]
+[node name="MovementComponent" type="Node3D" parent="." unique_id=1066898846 node_paths=PackedStringArray("camera_component", "player", "stand_check", "standing_hitbox", "crouching_hitbox", "head", "eyes", "cam", "sync")]
 script = ExtResource("2_h54ih")
 camera_component = NodePath("../CameraComponent")
 player = NodePath("..")
@@ -71,6 +83,10 @@ crouching_hitbox = NodePath("../CrouchingHitbox")
 head = NodePath("../CameraComponent")
 eyes = NodePath("../CameraComponent/Eyes")
 cam = NodePath("../CameraComponent/Eyes/Camera3D")
+sync = NodePath("../MultiplayerSynchronizer")
 
 [node name="StandCheck" type="RayCast3D" parent="." unique_id=418045716]
 target_position = Vector3(0, 2, 0)
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=129529038]
+replication_config = SubResource("SceneReplicationConfig_jmcll")

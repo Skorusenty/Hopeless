@@ -9,6 +9,7 @@ class_name MovementComponent extends Node3D
 @export var head: CameraComponent
 @export var eyes: Node3D
 @export var cam: Camera3D
+@export var sync: MultiplayerSynchronizer
 
 @export_category("Movement")
 @export var walk_speed: float = 5.0
@@ -22,11 +23,19 @@ class_name MovementComponent extends Node3D
 var input_dir: Vector2
 var direction: Vector3
 var moving: bool
+var can_jump: bool
+var can_crouch: bool
+var can_sprint: bool
 var grounded: bool
 var speed: float
-var current_state: PlayerEnums.playerState = PlayerEnums.playerState.IDLE_STAND
+@export var current_state: PlayerEnums.playerState = PlayerEnums.playerState.IDLE_STAND
 
-func updatePlayerState() -> void:
+func _process(_delta: float) -> void:
+	handle_input()
+
+func update_player_state() -> void:
+	if not is_multiplayer_authority():
+		return
 	moving = (input_dir != Vector2.ZERO)
 
 	if player.movement_component.current_state == PlayerEnums.playerState.HOLDING:
@@ -36,7 +45,7 @@ func updatePlayerState() -> void:
 	if !grounded:
 		current_state = PlayerEnums.playerState.AIRBONE
 	else:
-		if Input.is_action_pressed("Crouch"):
+		if can_crouch:
 			if !moving:
 				current_state = PlayerEnums.playerState.IDLE_CROUCH
 			else:
@@ -44,7 +53,7 @@ func updatePlayerState() -> void:
 		elif !stand_check.is_colliding():
 			if !moving:
 				current_state = PlayerEnums.playerState.IDLE_STAND
-			elif Input.is_action_pressed("Sprint") and Input.is_action_pressed("Forward"):
+			elif can_sprint:
 				current_state = PlayerEnums.playerState.SPRINT
 			else:
 				current_state = PlayerEnums.playerState.WALK
@@ -53,6 +62,8 @@ func updatePlayerState() -> void:
 	update_player_collision(current_state)
 	
 func update_player_speed(_current_state: PlayerEnums.playerState) -> void:
+	if not is_multiplayer_authority():
+		return
 	match _current_state:
 		PlayerEnums.playerState.CROUCH, PlayerEnums.playerState.IDLE_CROUCH:
 			speed = crouch_speed
@@ -64,6 +75,8 @@ func update_player_speed(_current_state: PlayerEnums.playerState) -> void:
 			speed = walk_speed
 	
 func update_player_collision(_current_state: PlayerEnums.playerState) -> void:
+	if not is_multiplayer_authority():
+		return
 	if _current_state == PlayerEnums.playerState.CROUCH or _current_state == PlayerEnums.playerState.IDLE_CROUCH:
 		standing_hitbox.disabled = true
 		crouching_hitbox.disabled = false
@@ -73,48 +86,67 @@ func update_player_collision(_current_state: PlayerEnums.playerState) -> void:
 		
 func get_moving() -> bool:
 	return moving
-	
+
 # Jump action
-func performJump() -> void:
-	player.velocity.y = jump_velocity
-	
+func perform_jump() -> void:
+	if not is_multiplayer_authority():
+		return
+	if can_jump:
+		player.velocity.y = jump_velocity
+
 # Gravity action
-func handleGravity(delta) -> void:
+func handle_gravity(delta) -> void:
+	if not is_multiplayer_authority():
+		return
 	if !grounded:
 		player.velocity.y += gravity * delta
-		
-# Velocity math
-func handleMovement() -> void:
+
+# CLIENT SIDE INPUT GATHERING
+func handle_input() -> void:
+	if not Multiplayer.is_local:
+		return
+	var crouch_request: bool = true if Input.is_action_pressed("Crouch") else false
+	var sprint_request: bool = true if Input.is_action_pressed("Sprint") and Input.is_action_pressed("Forward") and !can_crouch else false
+	var jump_request: bool = true if Input.is_action_just_pressed("Jump") else false
+	var input = player.input_gather()
+	var dir = (camera_component.get_movement_direction(input))
+	send_input.rpc_id(1, dir, crouch_request, sprint_request, jump_request)
+
+# SERVER SIDE INPUT STASHING
+@rpc("any_peer", "call_local", "unreliable")
+func send_input(_direction: Vector3, _can_crouch: bool, _can_sprint: bool, _can_jump: bool) -> void:
+	direction = _direction
+	can_crouch = _can_crouch
+	can_sprint = _can_sprint
+	can_jump = _can_jump
+
+# SERVER SIDE MOVEMENT MATH
+func handle_movement() -> void:
+	if not is_multiplayer_authority():
+		return
 	var accel: float = g_accel if grounded else a_accel
-	var trueDirection = handleInput()
-	if trueDirection:
-		player.velocity.x = lerp(player.velocity.x, trueDirection.x * speed, accel)
-		player.velocity.z = lerp(player.velocity.z, trueDirection.z * speed, accel)
+	var true_direction = direction
+	if true_direction:
+		player.velocity.x = lerp(player.velocity.x, true_direction.x * speed, accel)
+		player.velocity.z = lerp(player.velocity.z, true_direction.z * speed, accel)
 	else:
 		player.velocity.x = lerp(player.velocity.x, 0.0, accel)
 		player.velocity.z = lerp(player.velocity.z, 0.0, accel)
 	player.move_and_slide()
 	
-# Player input gather
-func handleInput() -> Vector3:
-	input_dir = player.inputGather()
-	direction = (transform.basis * camera_component.get_movement_direction(input_dir))
-	if direction == Vector3.ZERO:
-		return Vector3.ZERO
-	return direction.normalized()
-	
-func _physics_process(delta: float) -> void:
-	grounded = player.is_on_floor()
-	updatePlayerState()
-	
-	# Gravity activation
-	handleGravity(delta)
-	
-	# Jump activation
-	if Input.is_action_just_pressed("Jump") and grounded:
-		performJump()
-	
-	# Player velocity math
-	handleMovement()
 
+
+# SERVER SIDE
+func _physics_process(delta: float) -> void:
+	if not is_multiplayer_authority():
+		return
+	grounded = player.is_on_floor()
+	update_player_state()
+	# Gravity activation
+	handle_gravity(delta)
+	# Jump activation
+	# Player velocity math
+	handle_movement()
+
+	
 	

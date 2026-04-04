@@ -19,13 +19,10 @@ class_name CameraComponent extends Node3D
 var head_bob_vector: Vector2 = Vector2.ZERO
 var head_bob_index: float = 0.0
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
-		player.rotate_y(deg_to_rad(-event.relative.x * sensitivity))
-		self.rotate_x(deg_to_rad(-event.relative.y * sensitivity))
-		self.rotation.x = clamp(self.rotation.x, deg_to_rad(-80), deg_to_rad(80))
-
+# CLIENT SIDE
 func get_movement_direction(input: Vector2) -> Vector3:
+	if not Multiplayer.is_local:
+		return Vector3.ZERO
 	var forward = self.global_transform.basis.z
 	forward.y = 0.0
 	forward = forward.normalized()
@@ -36,7 +33,19 @@ func get_movement_direction(input: Vector2) -> Vector3:
 
 	return (forward * input.x + right * input.y).normalized()
 
+# SERVER SIDE
+func _unhandled_input(event: InputEvent) -> void:
+	if not Multiplayer.is_local:
+		return
+	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
+		player.rotate_y(deg_to_rad(-event.relative.x * sensitivity))
+		self.rotate_x(deg_to_rad(-event.relative.y * sensitivity))
+		self.rotation.x = clamp(self.rotation.x, deg_to_rad(-80), deg_to_rad(80))
+
+# SERVER SIDE
 func update_camera(_delta) -> void:
+	if not Multiplayer.is_local:
+		return
 	if movement_component.current_state == PlayerEnums.playerState.AIRBONE:
 		return
 	elif movement_component.current_state == PlayerEnums.playerState.CROUCH or movement_component.current_state == PlayerEnums.playerState.IDLE_CROUCH:

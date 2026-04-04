@@ -32,7 +32,7 @@ signal object_placed(obj: RigidBody3D)
 signal object_dropped(obj: RigidBody3D)
 
 func _input(_event: InputEvent) -> void:
-	if not Multiplayer.is_local:
+	if not player.is_local:
 		return
 	 # CURSOR RELEASE
 	if Input.is_action_pressed("Altmouse"):
@@ -64,7 +64,7 @@ func is_holding() -> bool:
 	return _held != null
 
 func pick_up(obj: RigidBody3D) -> void:
-	if not Multiplayer.is_local:
+	if not player.is_local:
 		return
 	if _held != null:
 		return
@@ -85,7 +85,7 @@ func pick_up(obj: RigidBody3D) -> void:
 	emit_signal("object_picked_up", _held)
 	
 func place() -> void:
-	if not Multiplayer.is_local:
+	if not player.is_local:
 		return
 	if _held == null:
 		return
@@ -95,7 +95,7 @@ func place() -> void:
 	emit_signal("object_placed", obj)
 	
 func begin_charge() -> void:
-	if not Multiplayer.is_local:
+	if not player.is_local:
 		return
 	if _held == null:
 		return
@@ -103,7 +103,7 @@ func begin_charge() -> void:
 	_charge_force = min_throw_force
 
 func throw() -> void:
-	if not Multiplayer.is_local:
+	if not player.is_local:
 		return
 	if _held == null:
 		return
@@ -115,7 +115,7 @@ func throw() -> void:
 	emit_signal("object_thrown", obj, _charge_force)
 	
 func drop() -> void:
-	if not Multiplayer.is_local:
+	if not player.is_local:
 		return
 	if _held == null:
 		return
@@ -124,7 +124,7 @@ func drop() -> void:
 	emit_signal("object_dropped", obj)
 	
 func _release(obj: RigidBody3D, impulse: Vector3, targetPos: Vector3) -> void:
-	if not Multiplayer.is_local:
+	if not player.is_local:
 		return
 	_held = null
 	_charging = false
@@ -151,7 +151,7 @@ func _release(obj: RigidBody3D, impulse: Vector3, targetPos: Vector3) -> void:
 		player.movement_component.current_state = PlayerEnums.playerState.IDLE_STAND
 		
 func _physics_process(delta: float) -> void:
-	if not Multiplayer.is_local:
+	if not player.is_local:
 		return
 	if _held == null:
 		return

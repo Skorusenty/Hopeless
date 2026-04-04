@@ -6,6 +6,8 @@ class_name MovementComponent extends Node3D
 @export var stand_check: RayCast3D
 @export var standing_hitbox: CollisionShape3D
 @export var crouching_hitbox: CollisionShape3D
+@export var standing_mesh: MeshInstance3D
+@export var crouching_mesh: MeshInstance3D
 @export var head: CameraComponent
 @export var eyes: Node3D
 @export var cam: Camera3D
@@ -22,7 +24,7 @@ class_name MovementComponent extends Node3D
 
 var input_dir: Vector2
 var direction: Vector3
-var moving: bool
+var moving: bool	
 var can_jump: bool
 var can_crouch: bool
 var can_sprint: bool
@@ -31,7 +33,8 @@ var speed: float
 @export var current_state: PlayerEnums.playerState = PlayerEnums.playerState.IDLE_STAND
 
 func _process(_delta: float) -> void:
-	handle_input()
+	if player.is_local:
+		handle_input()
 
 func update_player_state() -> void:
 	if not is_multiplayer_authority():
@@ -45,12 +48,12 @@ func update_player_state() -> void:
 	if !grounded:
 		current_state = PlayerEnums.playerState.AIRBONE
 	else:
-		if can_crouch:
+		if can_crouch and grounded:
 			if !moving:
 				current_state = PlayerEnums.playerState.IDLE_CROUCH
 			else:
 				current_state = PlayerEnums.playerState.CROUCH
-		elif !stand_check.is_colliding():
+		elif !stand_check.is_colliding() and grounded:
 			if !moving:
 				current_state = PlayerEnums.playerState.IDLE_STAND
 			elif can_sprint:
@@ -80,9 +83,13 @@ func update_player_collision(_current_state: PlayerEnums.playerState) -> void:
 	if _current_state == PlayerEnums.playerState.CROUCH or _current_state == PlayerEnums.playerState.IDLE_CROUCH:
 		standing_hitbox.disabled = true
 		crouching_hitbox.disabled = false
+		standing_mesh.visible = false
+		crouching_mesh.visible = true
 	else:
 		standing_hitbox.disabled = false
 		crouching_hitbox.disabled = true
+		standing_mesh.visible = true
+		crouching_mesh.visible = false
 		
 func get_moving() -> bool:
 	return moving
@@ -91,7 +98,7 @@ func get_moving() -> bool:
 func perform_jump() -> void:
 	if not is_multiplayer_authority():
 		return
-	if can_jump:
+	if can_jump and grounded:
 		player.velocity.y = jump_velocity
 
 # Gravity action
@@ -103,22 +110,32 @@ func handle_gravity(delta) -> void:
 
 # CLIENT SIDE INPUT GATHERING
 func handle_input() -> void:
-	if not Multiplayer.is_local:
+	if not player.is_local:
 		return
 	var crouch_request: bool = true if Input.is_action_pressed("Crouch") else false
 	var sprint_request: bool = true if Input.is_action_pressed("Sprint") and Input.is_action_pressed("Forward") and !can_crouch else false
 	var jump_request: bool = true if Input.is_action_just_pressed("Jump") else false
 	var input = player.input_gather()
 	var dir = (camera_component.get_movement_direction(input))
-	send_input.rpc_id(1, dir, crouch_request, sprint_request, jump_request)
+	if multiplayer.get_unique_id() != 1:
+		send_input.rpc_id(1, dir, crouch_request, sprint_request)
+		send_jump_request.rpc_id(1, jump_request)
+	else:
+		send_input(dir, crouch_request, sprint_request)
+		send_jump_request(jump_request)
 
 # SERVER SIDE INPUT STASHING
-@rpc("any_peer", "call_local", "unreliable")
-func send_input(_direction: Vector3, _can_crouch: bool, _can_sprint: bool, _can_jump: bool) -> void:
+@rpc("any_peer", "call_remote", "unreliable")
+func send_input(_direction: Vector3, _can_crouch: bool, _can_sprint: bool) -> void:
 	direction = _direction
 	can_crouch = _can_crouch
 	can_sprint = _can_sprint
-	can_jump = _can_jump
+	input_dir = Vector2(_direction.x, _direction.z)
+	#print(direction, can_crouch, can_sprint, can_jump)
+
+@rpc("any_peer", "call_remote", "reliable")
+func send_jump_request(_jump_request: bool) -> void:
+	can_jump = _jump_request
 
 # SERVER SIDE MOVEMENT MATH
 func handle_movement() -> void:
@@ -126,7 +143,7 @@ func handle_movement() -> void:
 		return
 	var accel: float = g_accel if grounded else a_accel
 	var true_direction = direction
-	if true_direction:
+	if true_direction != Vector3.ZERO:
 		player.velocity.x = lerp(player.velocity.x, true_direction.x * speed, accel)
 		player.velocity.z = lerp(player.velocity.z, true_direction.z * speed, accel)
 	else:
@@ -145,6 +162,7 @@ func _physics_process(delta: float) -> void:
 	# Gravity activation
 	handle_gravity(delta)
 	# Jump activation
+	perform_jump()
 	# Player velocity math
 	handle_movement()
 

@@ -1,5 +1,5 @@
 extends Node3D
 
-func _input(_event: InputEvent) -> void:
-	if Input.is_action_just_pressed("Exit"):
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("Exit"):
 		get_tree().quit()

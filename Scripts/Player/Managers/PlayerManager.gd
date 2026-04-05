@@ -27,11 +27,6 @@ func _ready() -> void:
 	
 	print("Player: ", name, " | local: ", is_local, " | my_id: ", multiplayer.get_unique_id())
 
-func _process(delta: float) -> void:
-	if not is_local:
-		return
-	camera_component.update_camera(delta)
-	
 func input_gather() -> Vector2:
 	var input = Input.get_vector("Forward", "Backward", "Left", "Right")
 	if input:

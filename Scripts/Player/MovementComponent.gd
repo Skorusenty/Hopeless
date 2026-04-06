@@ -33,6 +33,8 @@ var can_crouch: bool
 var can_sprint: bool
 var grounded: bool
 var speed: float
+var jump_buffer_time: float = 0.15
+var jump_buffer_timer: float = 0.0
 
 
 func _process(_delta: float) -> void:
@@ -102,13 +104,16 @@ func update_player_collision(_current_state: PlayerEnums.playerState) -> void:
 		crouching_mesh.visible = false
 
 # JUMP ACTION
-func perform_jump() -> void:
+func perform_jump(_delta: float) -> void:
 	
 	if not is_multiplayer_authority():
 		return
 	
-	if can_jump and grounded:
+	jump_buffer_timer -= _delta
+	
+	if jump_buffer_timer > 0.0 and grounded: #can_jump and grounded
 		player.velocity.y = jump_velocity
+		can_jump = false
 
 # GRAVITY ACTION
 func handle_gravity(delta) -> void:
@@ -150,7 +155,9 @@ func send_input(_direction: Vector3, _can_crouch: bool, _can_sprint: bool) -> vo
 # SERVER SIDE JUMP REQ STASH
 @rpc("any_peer", "call_remote", "reliable")
 func send_jump_request(_jump_request: bool) -> void:
-	can_jump = _jump_request
+	if _jump_request:
+		#can_jump = true
+		jump_buffer_timer = jump_buffer_time
 
 # SERVER SIDE MOVEMENT MATH
 func handle_movement() -> void:
@@ -184,6 +191,6 @@ func _physics_process(delta: float) -> void:
 	# Gravity activation
 	handle_gravity(delta)
 	# Jump activation
-	perform_jump()
+	perform_jump(delta)
 	# Player velocity math
 	handle_movement()

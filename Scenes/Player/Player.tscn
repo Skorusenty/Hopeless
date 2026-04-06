@@ -67,11 +67,31 @@ eyes = NodePath("Eyes")
 
 [node name="Camera3D" type="Camera3D" parent="CameraComponent/Eyes" unique_id=290962644]
 
-[node name="InteractionComponent" type="RayCast3D" parent="CameraComponent/Eyes" unique_id=639183417 node_paths=PackedStringArray("player")]
+[node name="HoveredName" type="Label" parent="CameraComponent/Eyes/Camera3D" unique_id=263252135]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = 26.0
+offset_right = 20.0
+offset_bottom = 49.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 16
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="InteractionComponent" type="RayCast3D" parent="CameraComponent/Eyes" unique_id=639183417 node_paths=PackedStringArray("player", "hovered_label")]
 target_position = Vector3(0, 0, -2.5)
 collision_mask = 128
 script = ExtResource("3_ude3g")
 player = NodePath("../../..")
+hovered_label = NodePath("../Camera3D/HoveredName")
 
 [node name="PickupComponent" type="Node3D" parent="CameraComponent" unique_id=387351487 node_paths=PackedStringArray("player", "cam", "hold_point", "interaction_component")]
 script = ExtResource("4_jmcll")

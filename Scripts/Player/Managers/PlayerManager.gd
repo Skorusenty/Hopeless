@@ -27,6 +27,18 @@ func _ready() -> void:
 	
 	print("Player: ", name, " | local: ", is_local, " | my_id: ", multiplayer.get_unique_id())
 
+func _input(_event: InputEvent) -> void:
+	if not is_multiplayer_authority():
+	 # CURSOR RELEASE
+		if Input.is_action_pressed("Altmouse"):
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		else:
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		
+		# GAME EXIT (FOR NOW)
+		if Input.is_action_just_pressed("Exit"):
+			get_tree().quit()
+
 func input_gather() -> Vector2:
 	var input = Input.get_vector("Forward", "Backward", "Left", "Right")
 	if input:

@@ -29,6 +29,12 @@ properties/2/replication_mode = 2
 properties/3/path = NodePath("MovementComponent:new_vel")
 properties/3/spawn = true
 properties/3/replication_mode = 1
+properties/4/path = NodePath("CameraComponent/PickupComponent/Hand:position")
+properties/4/spawn = true
+properties/4/replication_mode = 1
+properties/5/path = NodePath("CameraComponent/PickupComponent/Hand:rotation")
+properties/5/spawn = true
+properties/5/replication_mode = 1
 
 [node name="Player" type="CharacterBody3D" unique_id=56843405 node_paths=PackedStringArray("camera_component", "movement_component", "interaction_component", "pickup_component")]
 collision_layer = 2

@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://ckl3linlydvgt" path="res://Scenes/Player/Player.tscn" id="2_gl6un"]
 [ext_resource type="Script" uid="uid://co558exqilonn" path="res://Scripts/Multiplayer/MainMenu.gd" id="4_kldst"]
 [ext_resource type="Script" uid="uid://d2m16vy1gysjp" path="res://Scripts/Multiplayer/PlayerSpawner.gd" id="5_b2bpf"]
+[ext_resource type="Script" uid="uid://bki1lccr3eo7r" path="res://Scenes/HUD.gd" id="6_7lihs"]
 
 [node name="Game" type="Node3D" unique_id=174956129]
 script = ExtResource("1_j5yw3")
@@ -40,6 +41,14 @@ _spawnable_scenes = PackedStringArray("uid://ckl3linlydvgt")
 spawn_path = NodePath("../Players")
 script = ExtResource("5_b2bpf")
 player_scene = ExtResource("2_gl6un")
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=1866096768 node_paths=PackedStringArray("fps")]
+script = ExtResource("6_7lihs")
+fps = NodePath("Label")
+
+[node name="Label" type="Label" parent="HUD" unique_id=1984397906]
+offset_right = 40.0
+offset_bottom = 23.0
 
 [connection signal="pressed" from="Menu/VBoxContainer/Host" to="Menu" method="_on_host_pressed"]
 [connection signal="pressed" from="Menu/VBoxContainer/Join" to="Menu" method="_on_join_pressed"]

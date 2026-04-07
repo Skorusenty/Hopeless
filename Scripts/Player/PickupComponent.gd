@@ -37,42 +37,77 @@ func _input(_event: InputEvent) -> void:
 	# INTERACTIONS
 	if Input.is_action_just_pressed("Interact"):
 		if is_holding():
-			place()
+			request_place()
 		else:
-			interaction_component.activate()
+			interaction_component.activate_request()
+			print("[E] pressed")
 			
 	if is_holding():
 		if Input.is_action_just_pressed("Throw"):
-			begin_charge()
+			request_charge()
 		if Input.is_action_just_released("Throw"):
-			throw()
+			request_throw()
 		
 	if Input.is_action_just_pressed("Drop") and is_holding():
-		drop()
+		request_drop()
 
 func is_holding() -> bool:
 	return _held != null
 
-func pick_up(obj: RigidBody3D) -> void:
-	if not player.is_local:
+func request_pick_up(obj: RigidBody3D) -> void:
+	if not obj:
+		return
+		
+	if is_multiplayer_authority():
+		pick_up(obj.get_path())
+	else:
+		pick_up.rpc_id(1, obj.get_path())
+		print("pick_up request hit")
+
+@rpc("any_peer", "call_remote", "reliable")
+func pick_up(obj_path: NodePath) -> void:
+	if not is_multiplayer_authority():
 		return
 	if _held != null:
 		return
+	
+	var obj = get_node_or_null(obj_path)
+	
+	if not obj:
+		return
+	
 	_held = obj
-	_held_original_parent = obj.get_parent()
+	#_held_original_parent = obj.get_parent()
 	_held_original_layer = obj.collision_layer
 	_held_original_mask = obj.collision_mask
 	
+	_held.set_multiplayer_authority(1)
 	_held.freeze = true
 	_held.collision_layer = 0
 	_held.collision_mask = 0
+	_held.linear_velocity = Vector3.ZERO
+	_held.angular_velocity = Vector3.ZERO
 	
-	_held_original_parent.remove_child(_held)
-	hold_point.add_child(_held)
+	#_held_original_parent.remove_child(_held)
+	#hold_point.add_child(_held)
+	
 	_held.global_transform = hold_point.global_transform
+	print("it really should work rn")
 	
 	player.movement_component.current_state = PlayerEnums.playerState.HOLDING
 	emit_signal("object_picked_up", _held)
+
+func request_place() -> void:
+	return
+
+func request_drop() -> void:
+	return
+
+func request_charge() -> void:
+	return
+
+func request_throw() -> void:
+	return
 	
 func place() -> void:
 	if not player.is_local:
@@ -119,8 +154,8 @@ func _release(obj: RigidBody3D, impulse: Vector3, targetPos: Vector3) -> void:
 	_held = null
 	_charging = false
 	
-	hold_point.remove_child(obj)
-	_held_original_parent.add_child(obj)
+	#hold_point.remove_child(obj)
+	#_held_original_parent.add_child(obj)
 	obj.global_position = targetPos
 	
 	obj.freeze = false
@@ -141,7 +176,7 @@ func _release(obj: RigidBody3D, impulse: Vector3, targetPos: Vector3) -> void:
 		player.movement_component.current_state = PlayerEnums.playerState.IDLE_STAND
 		
 func _physics_process(delta: float) -> void:
-	if not player.is_local:
+	if not is_multiplayer_authority():
 		return
 	if _held == null:
 		return

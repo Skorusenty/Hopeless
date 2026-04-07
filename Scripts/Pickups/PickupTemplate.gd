@@ -1,7 +1,7 @@
 class_name Pickup extends RigidBody3D
 
 
-func interact() -> void:
+func interact(_player) -> void:
 	pass
 
 func show_prompt() -> void:

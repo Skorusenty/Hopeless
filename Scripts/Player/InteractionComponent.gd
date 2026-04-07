@@ -5,7 +5,7 @@ class_name InteractionComponent extends RayCast3D
 var hovered_name
 var hit
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	hover_collision()
 
 func hover_collision() -> void:
@@ -22,22 +22,28 @@ func hover_collision() -> void:
 	else:
 		hovered_label.text = ""
 
-func activate():
+func activate_request():
 	if not player.is_local:
+		return
+	
+	if not is_colliding():
 		return
 	var hit_interactable = get_collider()
 	if multiplayer.get_unique_id() != 1:
-		activate_request.rpc_id(1, hit_interactable)
+		print("activate_request fired")
+		activate.rpc_id(1, hit_interactable.get_path())
 	else:
-		activate_request(hit_interactable)
+		activate(hit_interactable.get_path())
 
 @rpc("any_peer", "call_remote", "reliable")
-func activate_request(_hit) -> void:
-	if not is_multiplayer_authority():
+func activate(_hit: NodePath) -> void:
+	hit = get_node_or_null(_hit)
+	var player_interacting = player
+	if not hit:
+		print("Invalid hit")
 		return
-	print("dildo")
-	hit = _hit
-	if self.is_colliding():
-		if hit is Pickup:
-			if hit.has_method("interact"):
-				hit.interact()
+	
+	if hit is Pickup:
+		if hit.has_method("interact"):
+			hit.interact(player_interacting)
+			print("found the collider, hit.interact() fired")

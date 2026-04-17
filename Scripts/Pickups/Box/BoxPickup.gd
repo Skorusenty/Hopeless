@@ -8,12 +8,8 @@ func interact(_player) -> void:
 		return
 
 	var pick = _player
-	print(_player)
-	print(pick)
 	if pick and pick.has_method("get_pickup_comp"):
 		pick.get_pickup_comp().request_pick_up(self)
-		print(pick.get_pickup_comp())
-		print("it should've hit btw")
 
 func get_interactable_name() -> String:
 	return prompt_text

@@ -22,18 +22,28 @@ class_name PickupComponent extends Node3D
 var _held: RigidBody3D = null
 var _charge_force: float = 0.0
 var _charging: bool = false
-var _held_original_parent: Node = null
 var _held_original_layer: int = 0
 var _held_original_mask: int = 0
+var my_id: int
+## COMMENTED LINES FOR FURTHER UX (HUD/SOUNDS ETC)
+#signal object_picked_up(obj: RigidBody3D)
+#signal object_thrown(obj: RigidBody3D, force: float)
+#signal object_placed(obj: RigidBody3D)
+#signal object_dropped(obj: RigidBody3D)
 
-signal object_picked_up(obj: RigidBody3D)
-signal object_thrown(obj: RigidBody3D, force: float)
-signal object_placed(obj: RigidBody3D)
-signal object_dropped(obj: RigidBody3D)
+func _ready() -> void:
+	if is_multiplayer_authority():
+		multiplayer.peer_disconnected.connect(_on_disconnect)
+	my_id = multiplayer.get_unique_id()
+
+func _on_disconnect(_id: int) -> void:
+	if _held != null:
+		_release(_held, Vector3.ZERO, _held.global_position)
 
 func _input(_event: InputEvent) -> void:
 	if not player.is_local:
 		return
+	print("CLIENT _held:", _held)
 	# INTERACTIONS
 	if Input.is_action_just_pressed("Interact"):
 		if is_holding():
@@ -54,20 +64,25 @@ func _input(_event: InputEvent) -> void:
 func is_holding() -> bool:
 	return _held != null
 
+@rpc("authority", "reliable")
+func sync_held(obj_path: NodePath) -> void:
+	_held = get_node_or_null(obj_path)
+	print("CLIENT now holding: ", _held)
+
 func request_pick_up(obj: RigidBody3D) -> void:
 	if not obj:
 		return
 		
 	if is_multiplayer_authority():
-		pick_up(obj.get_path())
+		pick_up(obj.get_path(), my_id)
 	else:
-		pick_up.rpc_id(1, obj.get_path())
-		print("pick_up request hit")
+		pick_up.rpc_id(1, obj.get_path(), my_id)
 
-@rpc("any_peer", "call_remote", "reliable")
-func pick_up(obj_path: NodePath) -> void:
+@rpc("any_peer", "reliable")
+func pick_up(obj_path: NodePath, sender_id: int) -> void:
 	if not is_multiplayer_authority():
 		return
+	
 	if _held != null:
 		return
 	
@@ -77,85 +92,139 @@ func pick_up(obj_path: NodePath) -> void:
 		return
 	
 	_held = obj
-	#_held_original_parent = obj.get_parent()
+	if is_multiplayer_authority():
+		sync_held.rpc_id(player.get_multiplayer_authority(), obj.get_path())
 	_held_original_layer = obj.collision_layer
 	_held_original_mask = obj.collision_mask
 	
-	_held.set_multiplayer_authority(1)
+	_held.set_multiplayer_authority(sender_id)
 	_held.freeze = true
 	_held.collision_layer = 0
 	_held.collision_mask = 0
 	_held.linear_velocity = Vector3.ZERO
 	_held.angular_velocity = Vector3.ZERO
 	
-	#_held_original_parent.remove_child(_held)
-	#hold_point.add_child(_held)
-	
 	_held.global_transform = hold_point.global_transform
-	print("it really should work rn")
 	
 	player.movement_component.current_state = PlayerEnums.playerState.HOLDING
-	emit_signal("object_picked_up", _held)
+	print("RPC pick_up received on:", multiplayer.get_unique_id(), " server:", multiplayer.is_server())
+	# COMMENTED LINES FOR FURTHER UX (HUD/SOUNDS ETC)
+	#emit_signal("object_picked_up", _held)
 
 func request_place() -> void:
-	return
+	if _held == null:
+		return
+	
+	var obj = _held
+	
+	if is_multiplayer_authority():
+		place(obj.get_path())
+	else:
+		place.rpc_id(1, obj.get_path())
+
+@rpc("any_peer", "reliable")
+func place(obj_path: NodePath) -> void:
+	if not is_multiplayer_authority():
+		return
+	
+	if _held == null:
+		return
+	
+	var obj = get_node_or_null(obj_path)
+	
+	if obj == null:
+		return
+	var place_pos = cam.global_position + (-cam.global_transform.basis.z * place_distance)
+	
+	if interaction_component.is_colliding():
+		var result = interaction_component.get_collision_point()
+		place_pos = result.position - (-cam.global_transform.basis.z * 0.1)
+	
+	_release(obj, Vector3.ZERO, place_pos)
+	# COMMENTED LINES FOR FURTHER UX (HUD/SOUNDS ETC)
+	#emit_signal("object_placed", obj)
 
 func request_drop() -> void:
-	return
+	if _held == null:
+		return
+	
+	var obj = _held
+	if is_multiplayer_authority():
+		drop(obj.get_path())
+	else:
+		drop.rpc_id(1, obj.get_path())
+
+@rpc("any_peer", "reliable")
+func drop(obj_path: NodePath) -> void:
+	if not is_multiplayer_authority():
+		return
+	
+	if _held == null:
+		return
+	
+	var obj = get_node_or_null(obj_path)
+	
+	if obj == null:
+		return
+	
+	_release(obj, Vector3.ZERO, obj.global_position)
+	# COMMENTED LINES FOR FURTHER UX (HUD/SOUNDS ETC)
+	#emit_signal("object_dropped", obj)
 
 func request_charge() -> void:
-	return
+	if _held == null:
+		return
+	
+	if is_multiplayer_authority():
+		begin_charge()
+	else:
+		begin_charge.rpc_id(1)
 
-func request_throw() -> void:
-	return
-	
-func place() -> void:
-	if not player.is_local:
-		return
-	if _held == null:
-		return
-	var obj = _held
-	var place_pos = cam.global_position + (-cam.global_transform.basis.z * place_distance)
-	_release(obj, Vector3.ZERO, place_pos)
-	emit_signal("object_placed", obj)
-	
 func begin_charge() -> void:
-	if not player.is_local:
+	if not is_multiplayer_authority():
 		return
+	
 	if _held == null:
 		return
+	
 	_charging = true
 	_charge_force = min_throw_force
 
-func throw() -> void:
-	if not player.is_local:
-		return
+func request_throw() -> void:
 	if _held == null:
 		return
-	_charging = false
+	
 	var obj = _held
+	
+	if is_multiplayer_authority():
+		throw(obj.get_path())
+	else:
+		throw.rpc_id(1, obj.get_path())
+
+@rpc("any_peer", "reliable")
+func throw(obj_path: NodePath) -> void:
+	if not is_multiplayer_authority():
+		return
+	
+	if _held == null:
+		return
+	
+	_charging = false
+	var obj = get_node_or_null(obj_path)
+	
+	if obj == null:
+		return
+	# COMMENTED LINES FOR FURTHER UX (HUD/SOUNDS ETC)
 	var dir = -cam.global_transform.basis.z
+	#var force = _charge_force
 	_release(obj, dir * _charge_force, obj.global_position)
 	_charge_force = 0.0
-	emit_signal("object_thrown", obj, _charge_force)
-	
-func drop() -> void:
-	if not player.is_local:
-		return
-	if _held == null:
-		return
-	var obj = _held
-	_release(obj, Vector3.ZERO, obj.global_position)
-	emit_signal("object_dropped", obj)
-	
+	#emit_signal("object_thrown", obj, force)
+
 func _release(obj: RigidBody3D, impulse: Vector3, targetPos: Vector3) -> void:
-	if not player.is_local:
-		return
 	_held = null
 	_charging = false
 	
-	#hold_point.remove_child(obj)
-	#_held_original_parent.add_child(obj)
 	obj.global_position = targetPos
 	
 	obj.freeze = false
@@ -178,6 +247,7 @@ func _release(obj: RigidBody3D, impulse: Vector3, targetPos: Vector3) -> void:
 func _physics_process(delta: float) -> void:
 	if not is_multiplayer_authority():
 		return
+	
 	if _held == null:
 		return
 	
@@ -190,7 +260,7 @@ func _physics_process(delta: float) -> void:
 	_held.global_transform.basis = Basis(current_quat.slerp(target_quat, delta * hold_rot_lerp_speed))
 	
 	if _held.global_position.distance_to(hold_point.global_position) > max_hold_distance:
-		drop()
+		request_drop()
 		return
 	
 	if _charging:

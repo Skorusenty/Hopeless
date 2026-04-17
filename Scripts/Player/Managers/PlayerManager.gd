@@ -9,6 +9,7 @@ class_name PlayerManager extends CharacterBody3D
 
 var is_local: bool = false
 
+
 func _enter_tree() -> void:
 	set_multiplayer_authority(1)
 

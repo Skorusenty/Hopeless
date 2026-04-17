@@ -18,6 +18,11 @@ config/features=PackedStringArray("4.6", "Forward Plus")
 
 PlayerEnums="*uid://ddmoa55bw5pl4"
 Game="*uid://6xjx4cax8yl"
+Multiplayer="*uid://brefdfhyn0j1u"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/godotsteam/plugin.cfg")
 
 [global_group]
 
@@ -95,3 +100,10 @@ Altmouse={
 [rendering]
 
 rendering_device/driver.windows="d3d12"
+
+[steam]
+
+initialization/app_id=0
+initialization/initialize_on_startup=false
+initialization/embed_callbacks=false
+multiplayer_peer/max_channels=4

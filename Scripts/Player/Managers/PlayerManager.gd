@@ -6,45 +6,46 @@ class_name PlayerManager extends CharacterBody3D
 @export var interaction_component: InteractionComponent
 @export var pickup_component: PickupComponent
 
-func _ready() -> void:
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
-func _process(delta: float) -> void:
-	camera_component.update_camera(delta)
+var is_local: bool = false
+
+
+func _enter_tree() -> void:
+	set_multiplayer_authority(1)
+
+func _ready() -> void:
+	await get_tree().physics_frame
+	await get_tree().process_frame
+	is_local = (name.to_int() == multiplayer.get_unique_id())
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	
-func inputGather() -> Vector2:
+	if is_local:
+		camera_component.cam.current = true
+		camera_component.set_process_unhandled_input(true)
+	else:
+		camera_component.set_process_unhandled_input(false)
+		camera_component.cam.current = false
+	
+	print("Player: ", name, " | local: ", is_local, " | my_id: ", multiplayer.get_unique_id())
+
+func _input(_event: InputEvent) -> void:
+	if not is_multiplayer_authority():
+	 # CURSOR RELEASE
+		if Input.is_action_pressed("Altmouse"):
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		else:
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		
+		# GAME EXIT (FOR NOW)
+		if Input.is_action_just_pressed("Exit"):
+			get_tree().quit()
+
+func input_gather() -> Vector2:
 	var input = Input.get_vector("Forward", "Backward", "Left", "Right")
 	if input:
 		return input
 	else:
 		return Vector2.ZERO
-		
-func _input(_event: InputEvent) -> void:
-	 # CURSOR RELEASE
-	if Input.is_action_pressed("Altmouse"):
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	else:
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	
-	# GAME EXIT (FOR NOW)
-	if Input.is_action_just_pressed("Exit"):
-		get_tree().quit()
-		
-	# INTERACTIONS
-	if Input.is_action_just_pressed("Interact"):
-		if pickup_component.is_holding():
-			pickup_component.place()
-		else:
-			interaction_component.activate()
-			
-	if pickup_component.is_holding():
-		if Input.is_action_just_pressed("Throw"):
-			pickup_component.begin_charge()
-		if Input.is_action_just_released("Throw"):
-			pickup_component.throw()
-		
-	if Input.is_action_just_pressed("Drop") and pickup_component.is_holding():
-		pickup_component.drop()
 
 func get_pickup_comp() -> PickupComponent:
 	return pickup_component

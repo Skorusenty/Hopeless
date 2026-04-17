@@ -1,8 +1,11 @@
 class_name CameraComponent extends Node3D
+
 @export var movement_component: MovementComponent
 @export var cam: Camera3D
 @export var player: PlayerManager
 @export var eyes: Node3D
+
+
 @export var crouch_depth: float = -0.8
 @export var head_base_pos: float = 1.8
 @export var base_fov: float = 90.0
@@ -19,13 +22,15 @@ class_name CameraComponent extends Node3D
 var head_bob_vector: Vector2 = Vector2.ZERO
 var head_bob_index: float = 0.0
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
-		player.rotate_y(deg_to_rad(-event.relative.x * sensitivity))
-		self.rotate_x(deg_to_rad(-event.relative.y * sensitivity))
-		self.rotation.x = clamp(self.rotation.x, deg_to_rad(-80), deg_to_rad(80))
+func _process(delta: float) -> void:
+	if not player.is_local:
+		return
+	update_camera(delta)
 
+# CLIENT SIDE
 func get_movement_direction(input: Vector2) -> Vector3:
+	if not player.is_local:
+		return Vector3.ZERO
 	var forward = self.global_transform.basis.z
 	forward.y = 0.0
 	forward = forward.normalized()
@@ -36,20 +41,50 @@ func get_movement_direction(input: Vector2) -> Vector3:
 
 	return (forward * input.x + right * input.y).normalized()
 
-func update_camera(_delta) -> void:
-	if movement_component.current_state == PlayerEnums.playerState.AIRBONE:
+# SERVER SIDE
+func _unhandled_input(event: InputEvent) -> void:
+	if not player.is_local:
 		return
-	elif movement_component.current_state == PlayerEnums.playerState.CROUCH or movement_component.current_state == PlayerEnums.playerState.IDLE_CROUCH:
+	
+	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
+		
+		var yaw = (-event.relative.x * sensitivity)
+		var pitch = (-event.relative.y * sensitivity)
+		self.rotate_x(deg_to_rad(pitch))
+		self.rotation.x = clamp(self.rotation.x, deg_to_rad(-80), deg_to_rad(80))
+		if multiplayer.get_unique_id() != 1:
+			send_yaw.rpc_id(1, yaw)
+		else:
+			send_yaw(yaw)
+
+@rpc("any_peer", "call_remote", "unreliable")
+func send_yaw(_yaw: float) -> void:
+	if not is_multiplayer_authority():
+		return
+	player.rotate_y(deg_to_rad(_yaw))
+
+# SERVER SIDE
+func update_camera(_delta) -> void:
+	if not player.is_local:
+		return
+	
+	var state = movement_component.current_state
+	var moving = movement_component.get_moving()
+	
+	if state == PlayerEnums.playerState.AIRBONE:
+		current_bob_amp = walk_bob_amp
+		head_bob_index += walk_bob_speed * _delta
+	elif state == PlayerEnums.playerState.CROUCH or state == PlayerEnums.playerState.IDLE_CROUCH:
 		self.position.y = lerp(self.position.y, head_base_pos + crouch_depth, _delta * lerp_speed)
 		cam.fov = lerp(cam.fov, base_fov * 0.95, _delta * lerp_speed)
 		current_bob_amp = crouch_bob_amp
 		head_bob_index += crouch_bob_speed * _delta
-	elif movement_component.current_state == PlayerEnums.playerState.IDLE_STAND or movement_component.current_state == PlayerEnums.playerState.WALK:
+	elif state == PlayerEnums.playerState.IDLE_STAND or state == PlayerEnums.playerState.WALK:
 		self.position.y = lerp(self.position.y, head_base_pos, _delta * lerp_speed)
 		cam.fov = lerp(cam.fov, base_fov, _delta * lerp_speed)
 		current_bob_amp = walk_bob_amp
 		head_bob_index += walk_bob_speed * _delta
-	elif movement_component.current_state == PlayerEnums.playerState.SPRINT:
+	elif state == PlayerEnums.playerState.SPRINT:
 		self.position.y = lerp(self.position.y, head_base_pos, _delta * lerp_speed)
 		cam.fov = lerp(cam.fov, base_fov * 1.05, _delta * lerp_speed)
 		current_bob_amp = sprint_bob_amp
@@ -57,8 +92,8 @@ func update_camera(_delta) -> void:
 
 	head_bob_vector.y = sin(head_bob_index)
 	head_bob_vector.x = (sin(head_bob_index/2.0) + 0.5)
-
-	if movement_component.get_moving():
+	
+	if moving:
 		eyes.position.y = lerp(eyes.position.y, head_bob_vector.y * (current_bob_amp/2.0), _delta * lerp_speed)
 		eyes.position.x = lerp(eyes.position.x, head_bob_vector.x * (current_bob_amp), _delta * lerp_speed)
 	else:
